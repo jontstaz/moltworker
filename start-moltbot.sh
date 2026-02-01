@@ -211,7 +211,6 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
     }
     // Remove invalid 'dm' key if it exists from previous runs (fixes #82)
     delete config.channels.telegram.dm;
-    delete config.channels.telegram.dmPolicy;
 }
 
 // Discord configuration
