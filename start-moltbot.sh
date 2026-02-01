@@ -15,7 +15,7 @@ if pgrep -f "clawdbot gateway" >/dev/null 2>&1; then
   exit 0
 fi
 
-# Paths (clawdbot paths are used internally - upstream hasn't renamed yet)
+# Paths (clawdbot paths are used internally - upstream hasnt renamed yet)
 CONFIG_DIR="/root/.clawdbot"
 CONFIG_FILE="$CONFIG_DIR/clawdbot.json"
 TEMPLATE_DIR="/root/.clawdbot-templates"
