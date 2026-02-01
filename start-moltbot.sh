@@ -28,6 +28,15 @@ echo "Backup directory: $BACKUP_DIR"
 # Create config directory
 mkdir -p "$CONFIG_DIR"
 
+# Clean up corrupted config with invalid 'dm' key (see issue #82)
+# If this config was synced to R2, also reset the sync timestamp
+# so the corrupted backup doesn't get restored again.
+if [ -f "$CONFIG_FILE" ] && grep -q '"dm":' "$CONFIG_FILE" 2>/dev/null; then
+  echo "Detected corrupted config with invalid 'dm' key, removing..."
+  rm -f "$CONFIG_FILE"
+  rm -f "$CONFIG_DIR/.last-sync"
+fi
+
 # ============================================================
 # RESTORE FROM R2 BACKUP
 # ============================================================
@@ -103,6 +112,13 @@ if [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ];
     cp -a "$BACKUP_DIR/skills/." "$SKILLS_DIR/"
     echo "Restored skills from R2 backup"
   fi
+fi
+
+# Post-restore: clean up corrupted config that may have come from R2 (see issue #82)
+if [ -f "$CONFIG_FILE" ] && grep -q '"dm":' "$CONFIG_FILE" 2>/dev/null; then
+  echo "Detected corrupted config (from R2 restore) with invalid 'dm' key, removing..."
+  rm -f "$CONFIG_FILE"
+  rm -f "$CONFIG_DIR/.last-sync"
 fi
 
 # If config file still doesn't exist, create from template
@@ -187,8 +203,15 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
     config.channels.telegram = config.channels.telegram || {};
     config.channels.telegram.botToken = process.env.TELEGRAM_BOT_TOKEN;
     config.channels.telegram.enabled = true;
-    config.channels.telegram.dm = config.channels.telegram.dm || {};
-    config.channels.telegram.dmPolicy = process.env.TELEGRAM_DM_POLICY || 'pairing';
+    if (process.env.TELEGRAM_DM_POLICY) {
+        config.channels.telegram.dmPolicy = process.env.TELEGRAM_DM_POLICY;
+    }
+    if (process.env.TELEGRAM_ALLOW_FROM) {
+        config.channels.telegram.allowFrom = process.env.TELEGRAM_ALLOW_FROM.split(',');
+    }
+    // Remove invalid 'dm' key if it exists from previous runs (fixes #82)
+    delete config.channels.telegram.dm;
+    delete config.channels.telegram.dmPolicy;
 }
 
 // Discord configuration
