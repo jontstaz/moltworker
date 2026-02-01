@@ -14,3 +14,7 @@ npx wrangler secret put ANTHROPIC_DEFAULT_SONNET_MODEL
 
 npx wrangler secret put ANTHROPIC_DEFAULT_HAIKU_MODEL
 # Enter the model ID for the "Haiku" tier (e.g., glm-4.7-flash)
+
+UPDATE:
+- Set the `channels.telegram.dmPolicy` to `allowlist`
+- Set `channels.telegram.allowFrom` to `1007781753`
