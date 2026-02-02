@@ -3,6 +3,7 @@ import type { AppEnv } from '../types';
 import { createAccessMiddleware } from '../auth';
 import { ensureMoltbotGateway, findExistingMoltbotProcess, mountR2Storage, syncToR2, waitForProcess } from '../gateway';
 import { R2_MOUNT_PATH } from '../config';
+import { InstallationManager } from '../installation';
 
 // CLI commands can take 10-15 seconds to complete due to WebSocket connection overhead
 const CLI_TIMEOUT_MS = 20000;
@@ -271,6 +272,177 @@ adminApi.post('/gateway/restart', async (c) => {
         ? 'Gateway process killed, new instance starting...'
         : 'No existing process found, starting new instance...',
       previousProcessId: existingProcess?.id,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: errorMessage }, 500);
+  }
+});
+
+// POST /api/admin/plugins/install - Install an OpenClaw plugin
+adminApi.post('/plugins/install', async (c) => {
+  const sandbox = c.get('sandbox');
+  const body = await c.req.json<{ plugin: string }>();
+
+  if (!body.plugin) {
+    return c.json({ error: 'plugin name is required' }, 400);
+  }
+
+  const manager = new InstallationManager(sandbox);
+
+  try {
+    console.log('[API] Starting plugin installation:', body.plugin);
+
+    const job = await manager.installPlugin(body.plugin);
+
+    if (job.status === 'failed') {
+      return c.json({
+        success: false,
+        error: job.error,
+        jobId: job.id,
+        output: job.output
+      }, 500);
+    }
+
+    return c.json({
+      success: true,
+      jobId: job.id,
+      type: 'plugin',
+      target: job.target,
+      status: job.status,
+      message: `Plugin ${body.plugin} installed successfully`,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      output: job.output
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: errorMessage }, 500);
+  }
+});
+
+// POST /api/admin/skills/install - Install an OpenClaw skill via ClawHub
+adminApi.post('/skills/install', async (c) => {
+  const sandbox = c.get('sandbox');
+  const body = await c.req.json<{ skill: string }>();
+
+  if (!body.skill) {
+    return c.json({ error: 'skill slug is required' }, 400);
+  }
+
+  const manager = new InstallationManager(sandbox);
+
+  try {
+    console.log('[API] Starting skill installation:', body.skill);
+
+    const job = await manager.installSkill(body.skill);
+
+    if (job.status === 'failed') {
+      return c.json({
+        success: false,
+        error: job.error,
+        jobId: job.id,
+        output: job.output
+      }, 500);
+    }
+
+    return c.json({
+      success: true,
+      jobId: job.id,
+      type: 'skill',
+      target: job.target,
+      status: job.status,
+      message: `Skill ${body.skill} installed successfully`,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      output: job.output
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: errorMessage }, 500);
+  }
+});
+
+// GET /api/admin/plugins - List installed plugins and skills
+adminApi.get('/plugins', async (c) => {
+  const sandbox = c.get('sandbox');
+
+  try {
+    const manager = new InstallationManager(sandbox);
+    const installed = await manager.listInstalled();
+
+    return c.json({
+      plugins: installed.plugins,
+      skills: installed.skills,
+      total: installed.plugins.length + installed.skills.length
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: errorMessage }, 500);
+  }
+});
+
+// GET /api/admin/plugins/status/:id - Get installation job status
+adminApi.get('/plugins/status/:id', async (c) => {
+  const sandbox = c.get('sandbox');
+  const jobId = c.req.param('id');
+
+  if (!jobId) {
+    return c.json({ error: 'job ID is required' }, 400);
+  }
+
+  try {
+    const manager = new InstallationManager(sandbox);
+    const job = manager.getJob(jobId);
+
+    if (!job) {
+      return c.json({ error: 'Job not found' }, 404);
+    }
+
+    return c.json(job);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: errorMessage }, 500);
+  }
+});
+
+// DELETE /api/admin/plugins/:type/:name - Uninstall a plugin or skill
+adminApi.delete('/plugins/:type/:name', async (c) => {
+  const sandbox = c.get('sandbox');
+  const type = c.req.param('type') as 'plugin' | 'skill';
+  const name = c.req.param('name');
+
+  if (!type || !name) {
+    return c.json({ error: 'type and name are required' }, 400);
+  }
+
+  if (!['plugin', 'skill'].includes(type)) {
+    return c.json({ error: 'Invalid type, must be "plugin" or "skill"' }, 400);
+  }
+
+  const manager = new InstallationManager(sandbox);
+
+  try {
+    console.log(`[API] Starting ${type} uninstallation: ${name}`);
+
+    let success: boolean;
+
+    if (type === 'plugin') {
+      success = await manager.uninstallPlugin(name);
+    } else {
+      success = await manager.uninstallSkill(name);
+    }
+
+    if (!success) {
+      return c.json({
+        success: false,
+        message: `Failed to uninstall ${type}: ${name}`
+      }, 500);
+    }
+
+    return c.json({
+      success: true,
+      message: `${type.charAt(0).toUpperCase() + type.slice(1)} ${name} uninstalled successfully`
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

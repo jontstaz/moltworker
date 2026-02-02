@@ -75,3 +75,51 @@ export interface JWTPayload {
   sub: string;
   type: string;
 }
+
+/**
+ * Installed plugin manifest entry
+ */
+export interface PluginManifest {
+  name: string;
+  installedAt: string;
+  version?: string;
+  dependencies?: string[];
+}
+
+/**
+ * Installed skill manifest entry
+ */
+export interface SkillManifest {
+  slug: string;
+  installedAt: string;
+  version?: string;
+  dependencies?: string[];
+}
+
+/**
+ * Combined installation manifest
+ */
+export interface InstallationManifest {
+  plugins: PluginManifest[];
+  skills: SkillManifest[];
+  lastUpdated: string;
+}
+
+/**
+ * Installation status
+ */
+export type InstallationStatus = 'idle' | 'installing' | 'completed' | 'failed';
+
+/**
+ * Installation job status
+ */
+export interface InstallationJob {
+  id: string;
+  type: 'plugin' | 'skill';
+  target: string;
+  status: InstallationStatus;
+  startedAt?: string;
+  completedAt?: string;
+  error?: string;
+  output?: string[];
+}
