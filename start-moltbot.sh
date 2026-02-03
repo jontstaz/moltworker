@@ -59,7 +59,7 @@ if [ -f "$BACKUP_DIR/clawdbot.json" ] && [ ! -f "$BACKUP_DIR/openclaw/openclaw.j
   echo "Migrating legacy clawdbot.json to openclaw/openclaw.json..."
   mkdir -p "$BACKUP_DIR/openclaw"
   # Rename the config file inside
-  cat "$BACKUP_DIR/clawdbot.json" | sed 's/"clawdbot\.json"/"openclaw.json"/g' > "$BACKUP_DIR/openclaw/openclaw.json"
+  cat "$BACKUP_DIR/clawdbot.json" | sed 's/"clawdbot\.json"/"openclaw.json"/g' >"$BACKUP_DIR/openclaw/openclaw.json"
   rm -f "$BACKUP_DIR/clawdbot.json"
   echo "Migration complete: clawdbot.json -> openclaw/openclaw.json"
 fi
@@ -110,7 +110,6 @@ if [ -f "$BACKUP_DIR/openclaw/openclaw.json" ]; then
     echo "Restored config from R2 backup"
   fi
 elif [ -f "$BACKUP_DIR/openclaw.json" ]; then
-  # Legacy backup format (flat structure)
   if should_restore_from_r2; then
     echo "Restoring from legacy R2 backup at $BACKUP_DIR..."
     cp -a "$BACKUP_DIR/." "$CONFIG_DIR/"
@@ -308,6 +307,27 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     config.channels.slack.enabled = true;
 }
 
+// Cloudflare Browser Rendering configuration
+if (process.env.CDP_SECRET && process.env.WORKER_URL) {
+    // Build CDP URL for browser profile
+    const workerUrl = process.env.WORKER_URL.replace(/^https?:\/\//, '');
+    const cdpUrl = 'wss://' + workerUrl + '/cdp?secret=' + encodeURIComponent(process.env.CDP_SECRET);
+
+    config.browser = {
+        enabled: true,
+        defaultProfile: 'cloudflare',
+        remoteCdpTimeoutMs: 2000,
+        remoteCdpHandshakeTimeoutMs: 4000,
+        profiles: {
+            cloudflare: {
+                cdpUrl: cdpUrl,
+                color: '#FF6600'
+            }
+        }
+    };
+    console.log('Configured Cloudflare Browser Rendering profile');
+}
+
 // Base URL override (e.g., for Cloudflare AI Gateway)
 // Usage: Set AI_GATEWAY_BASE_URL or ANTHROPIC_BASE_URL to your endpoint like:
 //   https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/anthropic
@@ -385,6 +405,15 @@ echo "Gateway will be available on port 18789"
 # Clean up stale lock files
 rm -f /tmp/openclaw-gateway.lock 2>/dev/null || true
 rm -f "$CONFIG_DIR/gateway.lock" 2>/dev/null || true
+
+# Export CDP environment variables for skills
+# These need to be available to Node.js scripts run by the cloudflare-browser skill
+if [ -n "$CDP_SECRET" ]; then
+  export CDP_SECRET
+fi
+if [ -n "$WORKER_URL" ]; then
+  export WORKER_URL
+fi
 
 BIND_MODE="lan"
 echo "Dev mode: ${OPENCLAW_DEV_MODE:-false}, Bind mode: $BIND_MODE"
