@@ -1,10 +1,11 @@
 #!/bin/bash
 # Startup script for Moltbot in Cloudflare Sandbox
 # This script:
-# 1. Restores config from R2 backup if available
-# 2. Configures moltbot from environment variables
-# 3. Starts a background sync to backup config to R2
-# 4. Starts the gateway
+# 1. Sets up Homebrew environment
+# 2. Restores config from R2 backup if available
+# 3. Configures moltbot from environment variables
+# 4. Starts a background sync to backup config to R2
+# 5. Starts the gateway
 
 set -e
 
@@ -111,6 +112,64 @@ if [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ];
     mkdir -p "$SKILLS_DIR"
     cp -a "$BACKUP_DIR/skills/." "$SKILLS_DIR/"
     echo "Restored skills from R2 backup"
+  fi
+fi
+
+# Restore installation manifest from R2 backup
+MANIFEST_FILE="$BACKUP_DIR/installation-manifest.json"
+if [ -f "$MANIFEST_FILE" ]; then
+  if should_restore_from_r2; then
+    echo "Restoring installation manifest from R2..."
+    mkdir -p "$BACKUP_DIR"
+    cp "$MANIFEST_FILE" "$BACKUP_DIR/"
+    echo "Restored installation manifest from R2 backup"
+  fi
+else
+  echo "No installation manifest found in R2, starting fresh"
+fi
+
+# Initialize installation manifest with bundled skills (installer skill is bundled with the image)
+if [ ! -f "$MANIFEST_FILE" ]; then
+  echo "Creating initial installation manifest with bundled skills..."
+  mkdir -p "$BACKUP_DIR"
+  cat >"$MANIFEST_FILE" <<'EOFMANIFEST'
+{
+  "skills": [
+    {
+      "slug": "installer",
+      "installedAt": "2025-01-01T00:00:00.000Z",
+      "bundled": true
+    }
+  ],
+  "plugins": [],
+  "lastUpdated": "2025-01-01T00:00:00.000Z"
+}
+EOFMANIFEST
+  echo "Created installation manifest at $MANIFEST_FILE"
+else
+  # Check if installer skill is in the manifest, add it if missing
+  if ! grep -q '"slug": "installer"' "$MANIFEST_FILE" 2>/dev/null; then
+    echo "Adding bundled installer skill to existing manifest..."
+    node <<EOFNODE
+    const fs = require('fs');
+    const manifestPath = '$MANIFEST_FILE';
+    let manifest = { skills: [], plugins: [] };
+    try {
+      manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    } catch (e) {}
+    manifest.skills = manifest.skills || [];
+    // Add installer if not already present
+    if (!manifest.skills.some(s => s.slug === 'installer')) {
+      manifest.skills.push({
+        slug: 'installer',
+        installedAt: '2025-01-01T00:00:00.000Z',
+        bundled: true
+      });
+    }
+    manifest.lastUpdated = new Date().toISOString();
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+EOFNODE
+    echo "Added installer skill to manifest"
   fi
 fi
 
