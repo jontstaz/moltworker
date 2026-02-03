@@ -4,7 +4,7 @@ import { waitForProcess } from './gateway/utils';
 
 const MOLTBOT_PORT = 18789;
 const BACKUP_DIR = '/data/moltbot';
-const CONFIG_DIR = '/root/.clawdbot';
+const CONFIG_DIR = '/root/.openclaw';
 const SKILLS_DIR = '/root/clawd/skills';
 const PLUGINS_CONFIG_FILE = `${CONFIG_DIR}/plugins.json`;
 const MANIFEST_FILE = `${BACKUP_DIR}/installation-manifest.json`;
