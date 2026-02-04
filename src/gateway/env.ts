@@ -2,7 +2,7 @@ import type { MoltbotEnv } from '../types';
 
 /**
  * Build environment variables to pass to the Moltbot container process
- * 
+ *
  * @param env - Worker environment bindings
  * @returns Environment variables record
  */
@@ -19,16 +19,19 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
     if (isOpenAIGateway) {
       envVars.OPENAI_API_KEY = env.AI_GATEWAY_API_KEY;
     } else {
-      envVars.ANTHROPIC_API_KEY = env.AI_GATEWAY_API_KEY;
+      envVars.ZAI_API_KEY = env.AI_GATEWAY_API_KEY;
     }
   }
 
   // Fall back to direct provider keys
-  if (!envVars.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY) {
-    envVars.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY;
+  if (!envVars.ZAI_API_KEY && env.ZAI_API_KEY) {
+    envVars.ZAI_API_KEY = env.ZAI_API_KEY;
   }
   if (!envVars.OPENAI_API_KEY && env.OPENAI_API_KEY) {
     envVars.OPENAI_API_KEY = env.OPENAI_API_KEY;
+  }
+  if (env.MOONSHOT_API_KEY) {
+    envVars.MOONSHOT_API_KEY = env.MOONSHOT_API_KEY;
   }
 
   // Pass base URL (used by start-moltbot.sh to determine provider)
@@ -38,15 +41,20 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
     if (isOpenAIGateway) {
       envVars.OPENAI_BASE_URL = normalizedBaseUrl;
     } else {
-      envVars.ANTHROPIC_BASE_URL = normalizedBaseUrl;
+      envVars.ZAI_BASE_URL = normalizedBaseUrl;
     }
-  } else if (env.ANTHROPIC_BASE_URL) {
-    envVars.ANTHROPIC_BASE_URL = env.ANTHROPIC_BASE_URL;
+  } else if (env.ZAI_BASE_URL) {
+    envVars.ZAI_BASE_URL = env.ZAI_BASE_URL;
   }
-  // Custom model name overrides
-  if (env.ANTHROPIC_DEFAULT_HAIKU_MODEL) envVars.ANTHROPIC_DEFAULT_HAIKU_MODEL = env.ANTHROPIC_DEFAULT_HAIKU_MODEL;
-  if (env.ANTHROPIC_DEFAULT_SONNET_MODEL) envVars.ANTHROPIC_DEFAULT_SONNET_MODEL = env.ANTHROPIC_DEFAULT_SONNET_MODEL;
-  if (env.ANTHROPIC_DEFAULT_OPUS_MODEL) envVars.ANTHROPIC_DEFAULT_OPUS_MODEL = env.ANTHROPIC_DEFAULT_OPUS_MODEL;
+  if (env.MOONSHOT_BASE_URL) {
+    envVars.MOONSHOT_BASE_URL = env.MOONSHOT_BASE_URL;
+  }
+  // Custom model name overrides for Zai
+  if (env.ZAI_DEFAULT_HAIKU_MODEL) envVars.ZAI_DEFAULT_HAIKU_MODEL = env.ZAI_DEFAULT_HAIKU_MODEL;
+  if (env.ZAI_DEFAULT_SONNET_MODEL) envVars.ZAI_DEFAULT_SONNET_MODEL = env.ZAI_DEFAULT_SONNET_MODEL;
+  if (env.ZAI_DEFAULT_OPUS_MODEL) envVars.ZAI_DEFAULT_OPUS_MODEL = env.ZAI_DEFAULT_OPUS_MODEL;
+  // Custom model name override for Moonshot
+  if (env.MOONSHOT_DEFAULT_MODEL) envVars.MOONSHOT_DEFAULT_MODEL = env.MOONSHOT_DEFAULT_MODEL;
   // Map MOLTBOT_GATEWAY_TOKEN to OPENCLAW_GATEWAY_TOKEN (container expects this name)
   if (env.MOLTBOT_GATEWAY_TOKEN) envVars.OPENCLAW_GATEWAY_TOKEN = env.MOLTBOT_GATEWAY_TOKEN;
   if (env.DEV_MODE) envVars.OPENCLAW_DEV_MODE = env.DEV_MODE; // Pass DEV_MODE as OPENCLAW_DEV_MODE to container

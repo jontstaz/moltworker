@@ -246,13 +246,13 @@ config.agents.defaults.model = config.agents.defaults.model || {};
 config.gateway = config.gateway || {};
 config.channels = config.channels || {};
 
-// Clean up any broken anthropic provider config from previous runs
+// Clean up any broken zai provider config from previous runs
 // (older versions didn't include required 'name' field)
-if (config.models?.providers?.anthropic?.models) {
-    const hasInvalidModels = config.models.providers.anthropic.models.some(m => !m.name);
+if (config.models?.providers?.zai?.models) {
+    const hasInvalidModels = config.models.providers.zai.models.some(m => !m.name);
     if (hasInvalidModels) {
-        console.log('Removing broken anthropic provider config (missing model names)');
-        delete config.models.providers.anthropic;
+        console.log('Removing broken zai provider config (missing model names)');
+        delete config.models.providers.zai;
     }
 }
 
@@ -311,7 +311,7 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
 if (process.env.CDP_SECRET && process.env.WORKER_URL) {
     // Build CDP URL for browser profile
     const workerUrl = process.env.WORKER_URL.replace(/^https?:\/\//, '');
-    const cdpUrl = 'wss://' + workerUrl + '/cdp?secret=' + encodeURIComponent(process.env.CDP_SECRET);
+    const cdpUrl = 'https://' + workerUrl + '/cdp?secret=' + encodeURIComponent(process.env.CDP_SECRET);
 
     config.browser = {
         enabled: true,
@@ -329,10 +329,10 @@ if (process.env.CDP_SECRET && process.env.WORKER_URL) {
 }
 
 // Base URL override (e.g., for Cloudflare AI Gateway)
-// Usage: Set AI_GATEWAY_BASE_URL or ANTHROPIC_BASE_URL to your endpoint like:
+// Usage: Set AI_GATEWAY_BASE_URL or ZAI_BASE_URL to your endpoint like:
 //   https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/anthropic
 //   https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/openai
-const baseUrl = (process.env.AI_GATEWAY_BASE_URL || process.env.ANTHROPIC_BASE_URL || '').replace(/\/+$/, '');
+const baseUrl = (process.env.AI_GATEWAY_BASE_URL || process.env.ZAI_BASE_URL || '').replace(/\/+$/, '');
 const isOpenAI = baseUrl.endsWith('/openai');
 
 if (isOpenAI) {
@@ -357,10 +357,10 @@ if (isOpenAI) {
     config.agents.defaults.models['openai/gpt-4.5-preview'] = { alias: 'GPT-4.5' };
     config.agents.defaults.model.primary = 'openai/gpt-5.2';
 } else if (baseUrl) {
-    console.log('Configuring Anthropic provider with base URL:', baseUrl);
-    const opusModel = process.env.ANTHROPIC_DEFAULT_OPUS_MODEL || 'claude-opus-4-5-20251101';
-    const sonnetModel = process.env.ANTHROPIC_DEFAULT_SONNET_MODEL || 'claude-sonnet-4-5-20250929';
-    const haikuModel = process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL || 'claude-haiku-4-5-20251001';
+    console.log('Configuring Zai provider with base URL:', baseUrl);
+    const opusModel = process.env.ZAI_DEFAULT_OPUS_MODEL || 'glm-4.7';
+    const sonnetModel = process.env.ZAI_DEFAULT_SONNET_MODEL || 'glm-4.7';
+    const haikuModel = process.env.ZAI_DEFAULT_HAIKU_MODEL || 'glm-4.7-flash';
     config.models = config.models || {};
     config.models.providers = config.models.providers || {};
     const providerConfig = {
@@ -373,20 +373,40 @@ if (isOpenAI) {
         ]
     };
     // Include API key in provider config if set (required when using custom baseUrl)
-    if (process.env.ANTHROPIC_API_KEY) {
-        providerConfig.apiKey = process.env.ANTHROPIC_API_KEY;
+    if (process.env.ZAI_API_KEY) {
+        providerConfig.apiKey = process.env.ZAI_API_KEY;
     }
-    config.models.providers.anthropic = providerConfig;
+    config.models.providers.zai = providerConfig;
     // Add models to the allowlist so they appear in /models
     // Ensure models object exists for this code path
     config.agents.defaults.models = config.agents.defaults.models || {};
-    config.agents.defaults.models['anthropic/' + opusModel] = { alias: 'Opus' };
-    config.agents.defaults.models['anthropic/' + sonnetModel] = { alias: 'Sonnet' };
-    config.agents.defaults.models['anthropic/' + haikuModel] = { alias: 'Haiku' };
-    config.agents.defaults.model.primary = 'anthropic/' + opusModel;
+    config.agents.defaults.models['zai/' + opusModel] = { alias: 'Opus' };
+    config.agents.defaults.models['zai/' + sonnetModel] = { alias: 'Sonnet' };
+    config.agents.defaults.models['zai/' + haikuModel] = { alias: 'Haiku' };
+    config.agents.defaults.model.primary = 'zai/' + opusModel;
 } else {
-    // Default to Anthropic without custom base URL (uses built-in pi-ai catalog)
-    config.agents.defaults.model.primary = 'anthropic/claude-opus-4-5';
+    // Default to Zai without custom base URL (uses built-in pi-ai catalog)
+    config.agents.defaults.model.primary = 'zai/glm-4.7';
+}
+
+// Configure Moonshot provider if API key is set
+if (process.env.MOONSHOT_API_KEY) {
+    console.log('Configuring Moonshot provider');
+    const moonshotBaseUrl = (process.env.MOONSHOT_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/+$/, '');
+    const moonshotModel = process.env.MOONSHOT_DEFAULT_MODEL || 'kimi-k2.5';
+    config.models = config.models || {};
+    config.models.providers = config.models.providers || {};
+    config.models.providers.moonshot = {
+        baseUrl: moonshotBaseUrl,
+        api: 'openai-completions',
+        apiKey: process.env.MOONSHOT_API_KEY,
+        models: [
+            { id: moonshotModel, name: moonshotModel, contextWindow: 256000 },
+        ]
+    };
+    // Add models to the allowlist so they appear in /models
+    config.agents.defaults.models = config.agents.defaults.models || {};
+    config.agents.defaults.models['moonshot/' + moonshotModel] = { alias: 'Kimi' };
 }
 
 // Write updated config
