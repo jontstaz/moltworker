@@ -10,12 +10,15 @@ export interface MoltbotEnv {
   // AI Gateway configuration (preferred)
   AI_GATEWAY_API_KEY?: string; // API key for the provider configured in AI Gateway
   AI_GATEWAY_BASE_URL?: string; // AI Gateway URL (e.g., https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/anthropic)
-  // Legacy direct provider configuration (fallback)
-  ANTHROPIC_API_KEY?: string;
-  ANTHROPIC_BASE_URL?: string;
-  ANTHROPIC_DEFAULT_HAIKU_MODEL?: string;
-  ANTHROPIC_DEFAULT_SONNET_MODEL?: string;
-  ANTHROPIC_DEFAULT_OPUS_MODEL?: string;
+  // Direct provider configuration (fallback)
+  ZAI_API_KEY?: string;
+  ZAI_BASE_URL?: string;
+  ZAI_DEFAULT_HAIKU_MODEL?: string;
+  ZAI_DEFAULT_SONNET_MODEL?: string;
+  ZAI_DEFAULT_OPUS_MODEL?: string;
+  MOONSHOT_API_KEY?: string;
+  MOONSHOT_BASE_URL?: string;
+  MOONSHOT_DEFAULT_MODEL?: string;
   OPENAI_API_KEY?: string;
   MOLTBOT_GATEWAY_TOKEN?: string; // Gateway token (mapped to OPENCLAW_GATEWAY_TOKEN for container)
 

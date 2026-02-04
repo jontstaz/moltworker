@@ -9,20 +9,20 @@ describe('buildEnvVars', () => {
     expect(result).toEqual({});
   });
 
-  it('includes ANTHROPIC_API_KEY when set directly', () => {
-    const env = createMockEnv({ ANTHROPIC_API_KEY: 'sk-test-key' });
+  it('includes ZAI_API_KEY when set directly', () => {
+    const env = createMockEnv({ ZAI_API_KEY: 'sk-test-key' });
     const result = buildEnvVars(env);
-    expect(result.ANTHROPIC_API_KEY).toBe('sk-test-key');
+    expect(result.ZAI_API_KEY).toBe('sk-test-key');
   });
 
-  it('maps AI_GATEWAY_API_KEY to ANTHROPIC_API_KEY for Anthropic gateway', () => {
+  it('maps AI_GATEWAY_API_KEY to ZAI_API_KEY for Zai gateway', () => {
     const env = createMockEnv({
       AI_GATEWAY_API_KEY: 'sk-gateway-key',
       AI_GATEWAY_BASE_URL: 'https://gateway.ai.cloudflare.com/v1/123/my-gw/anthropic',
     });
     const result = buildEnvVars(env);
-    expect(result.ANTHROPIC_API_KEY).toBe('sk-gateway-key');
-    expect(result.ANTHROPIC_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/anthropic');
+    expect(result.ZAI_API_KEY).toBe('sk-gateway-key');
+    expect(result.ZAI_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/anthropic');
     expect(result.OPENAI_API_KEY).toBeUndefined();
   });
 
@@ -34,7 +34,7 @@ describe('buildEnvVars', () => {
     const result = buildEnvVars(env);
     expect(result.OPENAI_API_KEY).toBe('sk-gateway-key');
     expect(result.OPENAI_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/openai');
-    expect(result.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(result.ZAI_API_KEY).toBeUndefined();
   });
 
   it('passes AI_GATEWAY_BASE_URL directly', () => {
@@ -45,15 +45,15 @@ describe('buildEnvVars', () => {
     expect(result.AI_GATEWAY_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/anthropic');
   });
 
-  it('AI_GATEWAY_* takes precedence over direct provider keys for Anthropic', () => {
+  it('AI_GATEWAY_* takes precedence over direct provider keys for Zai', () => {
     const env = createMockEnv({
       AI_GATEWAY_API_KEY: 'gateway-key',
       AI_GATEWAY_BASE_URL: 'https://gateway.example.com/anthropic',
-      ANTHROPIC_API_KEY: 'direct-key',
-      ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
+      ZAI_API_KEY: 'direct-key',
+      ZAI_BASE_URL: 'https://api.z.ai/api/anthropic',
     });
     const result = buildEnvVars(env);
-    expect(result.ANTHROPIC_API_KEY).toBe('gateway-key');
+    expect(result.ZAI_API_KEY).toBe('gateway-key');
     expect(result.AI_GATEWAY_BASE_URL).toBe('https://gateway.example.com/anthropic');
   });
 
@@ -69,14 +69,38 @@ describe('buildEnvVars', () => {
     expect(result.OPENAI_BASE_URL).toBe('https://gateway.example.com/openai');
   });
 
-  it('falls back to ANTHROPIC_* when AI_GATEWAY_* not set', () => {
+  it('falls back to ZAI_* when AI_GATEWAY_* not set', () => {
     const env = createMockEnv({
-      ANTHROPIC_API_KEY: 'direct-key',
-      ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
+      ZAI_API_KEY: 'direct-key',
+      ZAI_BASE_URL: 'https://api.z.ai/api/anthropic',
     });
     const result = buildEnvVars(env);
-    expect(result.ANTHROPIC_API_KEY).toBe('direct-key');
-    expect(result.ANTHROPIC_BASE_URL).toBe('https://api.anthropic.com');
+    expect(result.ZAI_API_KEY).toBe('direct-key');
+    expect(result.ZAI_BASE_URL).toBe('https://api.z.ai/api/anthropic');
+  });
+
+  it('includes MOONSHOT_API_KEY when set directly', () => {
+    const env = createMockEnv({ MOONSHOT_API_KEY: 'sk-moonshot-key' });
+    const result = buildEnvVars(env);
+    expect(result.MOONSHOT_API_KEY).toBe('sk-moonshot-key');
+  });
+
+  it('includes MOONSHOT_BASE_URL when set directly', () => {
+    const env = createMockEnv({
+      MOONSHOT_API_KEY: 'sk-moonshot-key',
+      MOONSHOT_BASE_URL: 'https://api.moonshot.cn/v1',
+    });
+    const result = buildEnvVars(env);
+    expect(result.MOONSHOT_API_KEY).toBe('sk-moonshot-key');
+    expect(result.MOONSHOT_BASE_URL).toBe('https://api.moonshot.ai/v1');
+  });
+
+  it('includes MOONSHOT_DEFAULT_MODEL when set', () => {
+    const env = createMockEnv({
+      MOONSHOT_DEFAULT_MODEL: 'kimi-k2.5',
+    });
+    const result = buildEnvVars(env);
+    expect(result.MOONSHOT_DEFAULT_MODEL).toBe('kimi-k2.5');
   });
 
   it('includes OPENAI_API_KEY when set directly (no gateway)', () => {
@@ -101,7 +125,7 @@ describe('buildEnvVars', () => {
       SLACK_APP_TOKEN: 'slack-app',
     });
     const result = buildEnvVars(env);
-    
+
     expect(result.TELEGRAM_BOT_TOKEN).toBe('tg-token');
     expect(result.TELEGRAM_DM_POLICY).toBe('pairing');
     expect(result.DISCORD_BOT_TOKEN).toBe('discord-token');
@@ -123,14 +147,14 @@ describe('buildEnvVars', () => {
 
   it('combines all env vars correctly', () => {
     const env = createMockEnv({
-      ANTHROPIC_API_KEY: 'sk-key',
+      ZAI_API_KEY: 'sk-key',
       MOLTBOT_GATEWAY_TOKEN: 'token',
       TELEGRAM_BOT_TOKEN: 'tg',
     });
     const result = buildEnvVars(env);
-    
+
     expect(result).toEqual({
-      ANTHROPIC_API_KEY: 'sk-key',
+      ZAI_API_KEY: 'sk-key',
       OPENCLAW_GATEWAY_TOKEN: 'token',
       TELEGRAM_BOT_TOKEN: 'tg',
     });
@@ -145,17 +169,17 @@ describe('buildEnvVars', () => {
     expect(result.OPENAI_API_KEY).toBe('sk-gateway-key');
     expect(result.OPENAI_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/openai');
     expect(result.AI_GATEWAY_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/openai');
-    expect(result.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(result.ZAI_API_KEY).toBeUndefined();
   });
 
-  it('handles trailing slash in AI_GATEWAY_BASE_URL for Anthropic', () => {
+  it('handles trailing slash in AI_GATEWAY_BASE_URL for Zai', () => {
     const env = createMockEnv({
       AI_GATEWAY_API_KEY: 'sk-gateway-key',
       AI_GATEWAY_BASE_URL: 'https://gateway.ai.cloudflare.com/v1/123/my-gw/anthropic/',
     });
     const result = buildEnvVars(env);
-    expect(result.ANTHROPIC_API_KEY).toBe('sk-gateway-key');
-    expect(result.ANTHROPIC_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/anthropic');
+    expect(result.ZAI_API_KEY).toBe('sk-gateway-key');
+    expect(result.ZAI_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/anthropic');
     expect(result.AI_GATEWAY_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/anthropic');
     expect(result.OPENAI_API_KEY).toBeUndefined();
   });
@@ -169,5 +193,18 @@ describe('buildEnvVars', () => {
     expect(result.OPENAI_API_KEY).toBe('sk-gateway-key');
     expect(result.OPENAI_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/openai');
     expect(result.AI_GATEWAY_BASE_URL).toBe('https://gateway.ai.cloudflare.com/v1/123/my-gw/openai');
+  });
+
+  it('includes ZAI custom model name overrides when set', () => {
+    const env = createMockEnv({
+      ZAI_DEFAULT_HAIKU_MODEL: 'glm-4.7-flash',
+      ZAI_DEFAULT_SONNET_MODEL: 'glm-4.7',
+      ZAI_DEFAULT_OPUS_MODEL: 'custom-opus',
+    });
+    const result = buildEnvVars(env);
+
+    expect(result.ZAI_DEFAULT_HAIKU_MODEL).toBe('glm-4.7-flash');
+    expect(result.ZAI_DEFAULT_SONNET_MODEL).toBe('glm-4.7');
+    expect(result.ZAI_DEFAULT_OPUS_MODEL).toBe('custom-opus');
   });
 });
