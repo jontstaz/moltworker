@@ -21,7 +21,7 @@ RUN npm install -g pnpm
 
 # Install OpenClaw
 # Pin to specific version for reproducible builds
-RUN npm install -g openclaw@2026.2.1 \
+RUN npm install -g openclaw@2026.2.2 \
     && openclaw --version
 
 # Create openclaw directories
