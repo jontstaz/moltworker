@@ -185,13 +185,20 @@ app.use('*', async (c, next) => {
 
 // Middleware: Cloudflare Access authentication for protected routes
 app.use('*', async (c, next) => {
+  const url = new URL(c.req.url);
+
+  // Skip Cloudflare Access for CDP routes (they use shared secret auth via query param)
+  if (url.pathname.startsWith('/cdp')) {
+    return next();
+  }
+
   // Determine response type based on Accept header
   const acceptsHtml = c.req.header('Accept')?.includes('text/html');
-  const middleware = createAccessMiddleware({ 
+  const middleware = createAccessMiddleware({
     type: acceptsHtml ? 'html' : 'json',
-    redirectOnMissing: acceptsHtml 
+    redirectOnMissing: acceptsHtml
   });
-  
+
   return middleware(c, next);
 });
 
