@@ -59,7 +59,7 @@ describe('InstallationManager', () => {
       const manager = new InstallationManager(sandboxMock as unknown as Sandbox);
       const result = await manager.installSkill('test-skill');
 
-      expect(sandboxMock.startProcess).toHaveBeenCalledWith('npx clawdhub install test-skill');
+      expect(sandboxMock.startProcess).toHaveBeenCalledWith('npx clawhub install test-skill');
       expect(result).toEqual({
         id: expect.any(String),
         type: 'skill',
@@ -112,7 +112,7 @@ describe('InstallationManager', () => {
       const manager = new InstallationManager(sandboxMock as unknown as Sandbox);
       const result = await manager.uninstallSkill('test-skill');
 
-      expect(sandboxMock.startProcess).toHaveBeenCalledWith('npx clawdhub uninstall test-skill');
+      expect(sandboxMock.startProcess).toHaveBeenCalledWith('npx clawhub uninstall test-skill');
       expect(result).toBe(true);
     });
   });

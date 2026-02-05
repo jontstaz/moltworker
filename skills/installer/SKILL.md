@@ -41,7 +41,7 @@ Installs an OpenClaw skill by slug from ClawHub.
 
 **Notes:**
 - Skills are AgentSkills-compatible folders with SKILL.md that teach agents how to use tools.
-- Installed via `clawdhub install <slug>`
+- Installed via `clawhub install <slug>`
 - Loaded from multiple sources: bundled (~/.openclaw/skills), managed workspace (<workspace>/skills), plugin-provided, and extra dirs.
 - This tool calls the `/api/skills/install` endpoint which executes the installation in the container.
 
@@ -54,7 +54,7 @@ The installation is protected by Cloudflare Access authentication when accessing
 When you install a plugin or skill:
 
 1. The skill calls the appropriate API endpoint on the worker.
-2. The worker executes `openclaw plugins install` or `clawdhub install` in the container.
+2. The worker executes `openclaw plugins install` or `clawhub install` in the container.
 3. The installation process includes:
    - Downloading dependencies via npm
    - Installing the plugin/skill to the appropriate directory

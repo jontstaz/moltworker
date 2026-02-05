@@ -59,7 +59,14 @@ export async function syncToR2(sandbox: Sandbox, env: MoltbotEnv): Promise<SyncR
 
   // Run rsync to backup config to R2
   // Note: Use --no-times because s3fs doesn't support setting timestamps
-  const syncCmd = `rsync -r --no-times --delete --exclude='*.lock' --exclude='*.log' --exclude='*.tmp' /root/.openclaw/ ${R2_MOUNT_PATH}/openclaw/ && rsync -r --no-times --delete /root/clawd/skills/ ${R2_MOUNT_PATH}/skills/ && date -Iseconds > ${R2_MOUNT_PATH}/.last-sync`;
+  // Note: We backup:
+  //   - /root/.openclaw/ -> R2:/openclaw/ (OpenClaw config)
+  //   - /root/clawd/skills/ -> R2:/skills/ (workspace skills)
+  //   - /data/moltbot/installation-manifest.json -> R2:/ (installation tracking)
+  const syncCmd = `rsync -r --no-times --delete --exclude='*.lock' --exclude='*.log' --exclude='*.tmp' /root/.openclaw/ ${R2_MOUNT_PATH}/openclaw/ && \
+rsync -r --no-times --delete /root/clawd/skills/ ${R2_MOUNT_PATH}/skills/ && \
+cp /data/moltbot/installation-manifest.json ${R2_MOUNT_PATH}/installation-manifest.json 2>/dev/null || true && \
+date -Iseconds > ${R2_MOUNT_PATH}/.last-sync`;
   
   try {
     const proc = await sandbox.startProcess(syncCmd);

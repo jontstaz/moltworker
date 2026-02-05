@@ -68,7 +68,7 @@ export class InstallationManager {
 
     try {
       console.log(`[SKILL INSTALL] Starting installation of ${skillSlug}`);
-      const proc = await this.sandbox.startProcess(`npx clawdhub install ${skillSlug}`);
+      const proc = await this.sandbox.startProcess(`npx clawhub install ${skillSlug}`);
       await waitForProcess(proc as { status: string }, INSTALLATION_TIMEOUT_MS);
 
       const logs = await proc.getLogs();
@@ -112,7 +112,7 @@ export class InstallationManager {
   async uninstallSkill(skillSlug: string): Promise<boolean> {
     try {
       console.log(`[SKILL UNINSTALL] Starting uninstallation of ${skillSlug}`);
-      const proc = await this.sandbox.startProcess(`npx clawdhub uninstall ${skillSlug}`);
+      const proc = await this.sandbox.startProcess(`npx clawhub uninstall ${skillSlug}`);
       await waitForProcess(proc as { status: string }, INSTALLATION_TIMEOUT_MS);
 
       const logs = await proc.getLogs();

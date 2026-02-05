@@ -24,6 +24,10 @@ RUN npm install -g pnpm
 RUN npm install -g openclaw@2026.2.2 \
     && openclaw --version
 
+# Install ClawHub CLI for skill management
+RUN npm install -g clawhub \
+    && clawhub --cli-version
+
 # Create openclaw directories
 # Templates are stored in /root/.openclaw-templates for initialization
 RUN mkdir -p /root/.openclaw \
@@ -39,8 +43,11 @@ RUN chmod +x /usr/local/bin/start-moltbot.sh
 # Copy default configuration template
 COPY moltbot.json.template /root/.openclaw-templates/moltbot.json.template
 
-# Copy custom skills
+# Copy custom skills to both locations:
+# - /root/clawd/skills/ - active workspace skills
+# - /usr/local/share/openclaw/skills/ - bundled skills backup for restore
 COPY skills/ /root/clawd/skills/
+RUN mkdir -p /usr/local/share/openclaw/skills && cp -a /root/clawd/skills/. /usr/local/share/openclaw/skills/
 
 # Set working directory
 WORKDIR /root/clawd

@@ -131,22 +131,53 @@ if [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ];
     cp -a "$BACKUP_DIR/skills/." "$SKILLS_DIR/"
     echo "Restored skills from R2 backup"
   fi
+else
+  echo "No skills backup found in R2"
 fi
+
+# Ensure bundled workspace skills are always present
+# These are baked into the image but may have been overwritten by R2 restore
+ensure_bundled_skills() {
+  local src_dir="/root/clawd/skills"
+  echo "Ensuring bundled skills are present..."
+
+  # Ensure installer skill is present
+  if [ -d "/usr/local/share/openclaw/skills/installer" ]; then
+    if [ ! -d "$src_dir/installer" ] || [ "/usr/local/share/openclaw/skills/installer/SKILL.md" -nt "$src_dir/installer/SKILL.md" 2>/dev/null ]; then
+      echo "  Installing/updating bundled skill: installer"
+      mkdir -p "$src_dir/installer"
+      cp -a /usr/local/share/openclaw/skills/installer/. "$src_dir/installer/"
+    else
+      echo "  Bundled skill already present: installer"
+    fi
+  fi
+
+  # Ensure cloudflare-browser skill is present
+  if [ -d "/usr/local/share/openclaw/skills/cloudflare-browser" ]; then
+    if [ ! -d "$src_dir/cloudflare-browser" ] || [ "/usr/local/share/openclaw/skills/cloudflare-browser/SKILL.md" -nt "$src_dir/cloudflare-browser/SKILL.md" 2>/dev/null ]; then
+      echo "  Installing/updating bundled skill: cloudflare-browser"
+      mkdir -p "$src_dir/cloudflare-browser"
+      cp -a /usr/local/share/openclaw/skills/cloudflare-browser/. "$src_dir/cloudflare-browser/"
+    else
+      echo "  Bundled skill already present: cloudflare-browser"
+    fi
+  fi
+}
+
+# Run bundled skill check
+ensure_bundled_skills
 
 # Restore installation manifest from R2 backup
 MANIFEST_FILE="$BACKUP_DIR/installation-manifest.json"
-if [ -f "$MANIFEST_FILE" ]; then
+if [ -f "$BACKUP_DIR/installation-manifest.json" ]; then
   if should_restore_from_r2; then
-    echo "Restoring installation manifest from R2..."
-    mkdir -p "$BACKUP_DIR"
-    cp "$MANIFEST_FILE" "$BACKUP_DIR/"
-    echo "Restored installation manifest from R2 backup"
+    echo "Installation manifest already present from R2 mount"
   fi
 else
-  echo "No installation manifest found in R2, starting fresh"
+  echo "No installation manifest found in R2, will create fresh"
 fi
 
-# Initialize installation manifest with bundled skills (installer skill is bundled with the image)
+# Initialize installation manifest with bundled skills
 if [ ! -f "$MANIFEST_FILE" ]; then
   echo "Creating initial installation manifest with bundled skills..."
   mkdir -p "$BACKUP_DIR"
@@ -157,6 +188,11 @@ if [ ! -f "$MANIFEST_FILE" ]; then
       "slug": "installer",
       "installedAt": "2025-01-01T00:00:00.000Z",
       "bundled": true
+    },
+    {
+      "slug": "cloudflare-browser",
+      "installedAt": "2025-01-01T00:00:00.000Z",
+      "bundled": true
     }
   ],
   "plugins": [],
@@ -165,30 +201,40 @@ if [ ! -f "$MANIFEST_FILE" ]; then
 EOFMANIFEST
   echo "Created installation manifest at $MANIFEST_FILE"
 else
-  # Check if installer skill is in the manifest, add it if missing
-  if ! grep -q '"slug": "installer"' "$MANIFEST_FILE" 2>/dev/null; then
-    echo "Adding bundled installer skill to existing manifest..."
-    node <<EOFNODE
-    const fs = require('fs');
-    const manifestPath = '$MANIFEST_FILE';
-    let manifest = { skills: [], plugins: [] };
-    try {
-      manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    } catch (e) {}
-    manifest.skills = manifest.skills || [];
-    // Add installer if not already present
-    if (!manifest.skills.some(s => s.slug === 'installer')) {
-      manifest.skills.push({
-        slug: 'installer',
-        installedAt: '2025-01-01T00:00:00.000Z',
-        bundled: true
-      });
-    }
-    manifest.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  # Check if bundled skills are in the manifest, add them if missing
+  echo "Checking bundled skills in manifest..."
+  node <<EOFNODE
+  const fs = require('fs');
+  const manifestPath = '$MANIFEST_FILE';
+  let manifest = { skills: [], plugins: [] };
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (e) {}
+  manifest.skills = manifest.skills || [];
+
+  // Add installer if not already present
+  if (!manifest.skills.some(s => s.slug === 'installer')) {
+    manifest.skills.push({
+      slug: 'installer',
+      installedAt: new Date().toISOString(),
+      bundled: true
+    });
+    console.log('Added bundled skill: installer');
+  }
+
+  // Add cloudflare-browser if not already present
+  if (!manifest.skills.some(s => s.slug === 'cloudflare-browser')) {
+    manifest.skills.push({
+      slug: 'cloudflare-browser',
+      installedAt: new Date().toISOString(),
+      bundled: true
+    });
+    console.log('Added bundled skill: cloudflare-browser');
+  }
+
+  manifest.lastUpdated = new Date().toISOString();
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 EOFNODE
-    echo "Added installer skill to manifest"
-  fi
 fi
 
 # Post-restore: clean up corrupted config that may have come from R2 (see issue #82)
